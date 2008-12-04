@@ -88,12 +88,12 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 	
-install:
-	cp -v include/*.h $(DEVKITPRO)/libnds/include
-	cp -v lib/*.a $(DEVKITPRO)/libnds/lib
+install: $(BUILD)
+	@cp -v include/*.h $(DEVKITPRO)/libnds/include
+	@cp -v lib/*.a $(DEVKITPRO)/libnds/lib
 
 dist:
-	tar -cjvf libfilesystem.tar.bz2 include/*.h lib/*.a
+	@tar -cjvf libfilesystem.tar.bz2 include/*.h lib/*.a
 
 lib:
 	@[ -d $@ ] || mkdir -p $@
