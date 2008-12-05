@@ -103,9 +103,7 @@ bool nitroFSInit() {
 
 	if (memcmp(&__NDSHeader->filenameOffset, &__gba_cart_header->filenameOffset, 16) == 0 ) {
 		nitroInit = true;
-	}
-
-	if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
+	} else if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
 		if ( strncmp(__system_argv->argv[0],"fat",3) == 0) {
 			fatInitDefault();
 			if ((ndsFile = fopen(__system_argv->argv[0],"rb"))){
