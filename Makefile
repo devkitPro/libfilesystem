@@ -6,6 +6,8 @@ ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
 
+DATESTRING	:=	$(shell date +%Y%m%d)
+
 include $(DEVKITARM)/ds_rules
 
 #---------------------------------------------------------------------------------
@@ -87,13 +89,16 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)
+
+#---------------------------------------------------------------------------------
+dist: all
+#---------------------------------------------------------------------------------
+	@tar --exclude=*CVS* -cvjf libfilesystem-src-$(DATESTRING).tar.bz2 include source Makefile
+	@tar --exclude=*CVS* -cvjf libfilesystem-$(DATESTRING).tar.bz2 include lib 
 	
-install: $(BUILD)
+install: all
 	@cp -v include/*.h $(DEVKITPRO)/libnds/include
 	@cp -v lib/*.a $(DEVKITPRO)/libnds/lib
-
-dist:
-	@tar -cjvf libfilesystem.tar.bz2 include/*.h lib/*.a
 
 lib:
 	@[ -d $@ ] || mkdir -p $@
@@ -105,7 +110,7 @@ $(BUILD): lib
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) lib
+	@rm -fr $(BUILD) lib *.bz2
 
 #---------------------------------------------------------------------------------
 else
