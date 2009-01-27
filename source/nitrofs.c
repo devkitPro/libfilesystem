@@ -22,8 +22,8 @@ static int nitroFSChdir(struct _reent *r,const char *name);
 
 static tNDSHeader *__gba_cart_header = (tNDSHeader *)0x08000000;
 
-#define NITRONAMELENMAX 0x80	//max file name is 127 +1 for zero byte :D
-#define NITROMAXPATHLEN	0x100	//256 bytes enuff?
+#define NITRONAMELENMAX 0x80	//max file name is 127 +1 for zero byte
+#define NITROMAXPATHLEN	0x100
 
 #define NITROROOT 		0xf000	//root entry_file_id
 #define NITRODIRMASK	0x0fff	//remove leading 0xf
@@ -184,27 +184,30 @@ static DIR_ITER* nitroFSDirOpen(struct _reent *r, DIR_ITER *dirState, const char
 	nitroDirReset(r,dirState);			//set dir to current path
 
 	do {
-		while((cptr=strchr(dirpath,'/'))==dirpath) {
-			dirpath++;	//move past any leading / or //
-		}
+
+		while( dirpath[0] == '/') dirpath++; // move past leading /
+		cptr=strchr(dirpath,'/');
 
 		if(cptr)
 			*cptr=0;		// erase /
+
+
 		if(*dirpath==0) {	// are we at the end of the path string?? if so there is nothing to search for we're already here !
 			pathfound=true; // mostly this handles searches for root or /  or no path specified cases 
 			break;
 		}
 		pathfound=false;
 
-		while(nitroFSDirNext(r,dirState,dirname,&st)==0) {	
-			if((st.st_mode==S_IFDIR) && !(strcmp(dirname,dirpath))) { //if its a directory and name matches dirpath
+		while(nitroFSDirNext(r,dirState,dirname,&st)==0) {
+				
+			if(S_ISDIR(st.st_mode) && !(strcmp(dirname,dirpath))) { //if its a directory and name matches dirpath
 				dirStruct->cur_dir_id=dirStruct->dir_id;  //move us to the next dir in tree
 				nitroDirReset(r,dirState);		//set dir to current path we just found...
 				pathfound=true;
 				break;
 			}
 		};
-		if(!pathfound) 
+		if(pathfound) 
 			break;
 		dirpath=cptr+1;	//move to right after last / we found
 	} while(cptr); // go till after the last /
@@ -262,7 +265,7 @@ static int nitroFSDirNext(struct _reent *r, DIR_ITER *dirState, char *filename, 
 	}
 	nitroSubSeek(pos,fntOffset+dirStruct->namepos,SEEK_SET);
 	nitroSubRead(pos, &next , sizeof(next));
-	// next: high bit 0x80 = entry isdir.. other 7 bits r size, the 16 bits following name are dir's entryid (starts with f000)
+	// next: high bit 0x80 = entry isdir.. other 7 bits are size, the 16 bits following name are dir's entryid (starts with f000)
 	//  00 = end of table //
 	if(next) {
 		if(next&NITROISDIR) {
@@ -270,13 +273,11 @@ static int nitroFSDirNext(struct _reent *r, DIR_ITER *dirState, char *filename, 
 			next&=NITROISDIR^0xff;	//invert bits and mask off 0x80
 			nitroSubRead(pos,filename,next);	
 			nitroSubRead(&dirStruct->pos,&dirStruct->dir_id,sizeof(dirStruct->dir_id)); //read the dir_id
-//grr cant get the struct member size?, just wanna test it so moving on...
-//			nitroSubRead(pos,&dirStruct->dir_id,sizeof(u16)); //read the dir_id
-			dirStruct->namepos+=next+sizeof(u16)+1;		//now we points to next one plus dir_id size:D
+			dirStruct->namepos+=next+sizeof(u16)+1;		// now we point to next one plus dir_id size
 		} else {
 			if(st) st->st_mode=0;
 			nitroSubRead(pos,filename,next);
-			dirStruct->namepos+=next+1;		//now we points to next one :D
+			dirStruct->namepos+=next+1;		//now we point to next one
 			//read file info to get filesize (and for fileopen)
 			nitroSubSeek(pos,fatOffset+(dirStruct->entry_id*sizeof(struct ROM_FAT)),SEEK_SET);	
 			nitroSubRead(pos, &dirStruct->romfat, sizeof(dirStruct->romfat));	//retrieve romfat entry (contains filestart and end positions)
@@ -391,7 +392,20 @@ static int nitroFSFstat(struct _reent *r,int fd,struct stat *st) {
 static int nitroFSstat(struct _reent *r,const char *file,struct stat *st) {
 //---------------------------------------------------------------------------------
 	struct nitroFSStruct fatStruct;
+	struct nitroDIRStruct dirStruct;
+	DIR_ITER dirState;
+	dirState.dirStruct=&dirStruct;
+
+	if((nitroFSDirOpen(r, &dirState, file)!=NULL)) {
+
+		st->st_mode = S_IFDIR;
+
+		nitroFSDirClose(r, &dirState);
+		return(0);
+	}
+
 	if(nitroFSOpen(NULL, &fatStruct, file, 0, 0)>=0) {
+		st->st_mode = S_IFREG;
 		st->st_size=fatStruct.end-fatStruct.start;
 		return(0);
 	}
