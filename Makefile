@@ -8,6 +8,13 @@ endif
 
 DATESTRING	:=	$(shell date +%Y%m%d)
 
+export FILESYSTEM_MAJOR	:= 0
+export FILESYSTEM_MINOR	:= 9
+export FILESYSTEM_PATCH	:= 1
+
+
+VERSION	:=	$(FILESYSTEM_MAJOR).$(FILESYSTEM_MINOR).$(FILESYSTEM_PATCH)
+
 include $(DEVKITARM)/ds_rules
 
 #---------------------------------------------------------------------------------
@@ -93,8 +100,8 @@ all: $(BUILD)
 #---------------------------------------------------------------------------------
 dist: all
 #---------------------------------------------------------------------------------
-	@tar --exclude=*CVS* -cvjf libfilesystem-src-$(DATESTRING).tar.bz2 include source Makefile
-	@tar --exclude=*CVS* -cvjf libfilesystem-$(DATESTRING).tar.bz2 include lib 
+	@tar --exclude=*CVS* --exclude=.svn -cvjf libfilesystem-src-$(VERSION).tar.bz2 include source Makefile
+	@tar --exclude=*CVS* --exclude=.svn -cvjf libfilesystem-$(VERSION).tar.bz2 include lib 
 	
 install: all
 	@cp -v include/*.h $(DEVKITPRO)/libnds/include
@@ -121,12 +128,6 @@ DEPENDS	:=	$(OFILES:.o=.d)
 # main targets
 #---------------------------------------------------------------------------------
 $(OUTPUT)	:	$(OFILES)
-
-#---------------------------------------------------------------------------------
-%.bin.o	:	%.bin
-#---------------------------------------------------------------------------------
-	@echo $(notdir $<)
-	@$(bin2o)
 
 
 -include $(DEPENDS)
