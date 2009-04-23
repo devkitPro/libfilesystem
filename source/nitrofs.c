@@ -207,7 +207,7 @@ static DIR_ITER* nitroFSDirOpen(struct _reent *r, DIR_ITER *dirState, const char
 				break;
 			}
 		};
-		if(pathfound) 
+		if(!pathfound) 
 			break;
 		dirpath=cptr+1;	//move to right after last / we found
 	} while(cptr); // go till after the last /
@@ -218,6 +218,7 @@ static DIR_ITER* nitroFSDirOpen(struct _reent *r, DIR_ITER *dirState, const char
 		return(NULL);
 	}
 }
+
 
 //---------------------------------------------------------------------------------
 static int nitroFSDirClose(struct _reent *r, DIR_ITER *dirState) {
@@ -394,8 +395,19 @@ static int nitroFSstat(struct _reent *r,const char *file,struct stat *st) {
 	struct nitroFSStruct fatStruct;
 	struct nitroDIRStruct dirStruct;
 	DIR_ITER dirState;
-	dirState.dirStruct=&dirStruct;
 
+	if(nitroFSOpen(NULL, &fatStruct, file, 0, 0)>=0) {
+		st->st_mode = S_IFREG;
+		st->st_size=fatStruct.end-fatStruct.start;
+		return(0);
+	}
+
+	dirState.dirStruct=&dirStruct;
+	if(nitroFSOpen(NULL, &fatStruct, file, 0, 0)>=0) {
+		st->st_mode = S_IFREG;
+		st->st_size=fatStruct.end-fatStruct.start;
+		return(0);
+	}
 	if((nitroFSDirOpen(r, &dirState, file)!=NULL)) {
 
 		st->st_mode = S_IFDIR;
@@ -404,11 +416,6 @@ static int nitroFSstat(struct _reent *r,const char *file,struct stat *st) {
 		return(0);
 	}
 
-	if(nitroFSOpen(NULL, &fatStruct, file, 0, 0)>=0) {
-		st->st_mode = S_IFREG;
-		st->st_size=fatStruct.end-fatStruct.start;
-		return(0);
-	}
 	return(-1);
 }
 
