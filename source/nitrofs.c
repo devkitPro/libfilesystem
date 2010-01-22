@@ -4,7 +4,7 @@
 
 #include <sys/dir.h>
 #include <sys/iosupport.h>
-#include <stdio.h>
+#include <sys/fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -64,7 +64,7 @@ struct nitroDIRStruct {
 static u32	fntOffset;	//offset to start of filename table
 static u32	fatOffset;	//offset to start of file alloc table
 static u16	chdirpathid;	//default dir path id...
-static FILE	*ndsFile = NULL;
+static int	ndsFileFD = -1;
 static unsigned int ndsFileLastpos;	//Used to determine need to fseek or not
 
 
@@ -106,8 +106,8 @@ bool nitroFSInit() {
 	} else if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
 		if ( strncmp(__system_argv->argv[0],"fat",3) == 0) {
 			fatInitDefault();
-			if ((ndsFile = fopen(__system_argv->argv[0],"rb"))){
-				setvbuf(ndsFile,NULL,_IONBF,0);
+			ndsFileFD = open(__system_argv->argv[0], O_RDONLY);
+			if (ndsFileFD != -1) {
 				nitroInit = true;				
 			}
 		}
@@ -127,15 +127,15 @@ bool nitroFSInit() {
 //---------------------------------------------------------------------------------
 static inline int nitroSubRead(unsigned int *npos, void *ptr, int len) {
 //---------------------------------------------------------------------------------
-	if(ndsFile!=NULL) { //read from ndsfile
+	if(ndsFileFD!=-1) { //read from ndsfile
 
 		if(ndsFileLastpos!=*npos)
-			fseek(ndsFile, *npos, SEEK_SET);
+			lseek(ndsFileFD, *npos, SEEK_SET);
 
-		len=fread(ptr,1,len,ndsFile);
+		len=read(ndsFileFD, ptr, len);
 
 	} else {	//reading from gbarom
-		if (len != 0) memcpy(ptr, *npos+(void*)GBAROM,len);
+		if (len > 0) memcpy(ptr, *npos+(void*)GBAROM,len);
 	}
 
 	if(len > 0)
