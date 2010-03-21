@@ -87,8 +87,13 @@ devoptab_t nitroFSdevoptab={
 	&nitroFSDirOpen,	//	DIR_ITER* (*diropen_r)(struct _reent *r, DIR_ITER *dirState, const char *path);
 	&nitroDirReset,		//	int (*dirreset_r)(struct _reent *r, DIR_ITER *dirState);
 	&nitroFSDirNext,	//	int (*dirnext_r)(struct _reent *r, DIR_ITER *dirState, char *filename, struct stat *filestat);
-	&nitroFSDirClose	//	int (*dirclose_r)(struct _reent *r, DIR_ITER *dirState);
-	
+	&nitroFSDirClose,	//	int (*dirclose_r)(struct _reent *r, DIR_ITER *dirState);
+	NULL,				//	int (*statvfs_r)(struct _reent *r, const char *path, struct statvfs *buf);
+	NULL,				//	int (*ftruncate_r)(struct _reent *r, int fd, off_t len);
+	NULL,				//	int (*fsync_r)(struct _reent *r, int fd);
+	NULL,				//	void *deviceData;
+	NULL,				//	int (*chmod_r)(struct _reent *r, const char *path, mode_t mode);
+	NULL				//	int (*fchmod_r)(struct _reent *r, int fd, mode_t mode);
 };
 
 //---------------------------------------------------------------------------------
