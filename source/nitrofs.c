@@ -1,5 +1,7 @@
 #include <nds/memory.h>
 #include <nds/system.h>
+#include <nds/card.h>
+
 #include <fat.h>
 
 #include <sys/dir.h>
@@ -66,7 +68,7 @@ static u32	fatOffset;	//offset to start of file alloc table
 static u16	chdirpathid;	//default dir path id...
 static int	ndsFileFD = -1;
 static unsigned int ndsFileLastpos;	//Used to determine need to fseek or not
-
+static bool cardRead = false;
 
 devoptab_t nitroFSdevoptab={
 	"nitro",
@@ -104,12 +106,13 @@ bool nitroFSInit() {
 
 	if (__NDSHeader->fatSize == 0 ) return false;
 	
-	sysSetCartOwner(BUS_OWNER_ARM9 );
+	sysSetCartOwner(BUS_OWNER_ARM9);
+	sysSetCardOwner(BUS_OWNER_ARM9);
 
+	// test for argv & open nds file
 	if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
 		if ( strncmp(__system_argv->argv[0],"fat",3) == 0) {
-			if (fatInitDefault() ) {
-
+			if (fatInitDefault() && !nitroInit) {
 				ndsFileFD = open(__system_argv->argv[0], O_RDONLY);
 				if (ndsFileFD != -1) {
 					nitroInit = true;				
@@ -117,10 +120,18 @@ bool nitroFSInit() {
 			}
 		}
 	}
+
+	// test for valid nitrofs on gba cart
 	if (!nitroInit) {
 		if (memcmp(&__NDSHeader->filenameOffset, &__gba_cart_header->filenameOffset, 16) == 0 ) {
 			nitroInit = true;
 		}
+	}
+
+	// fallback to direct card reads for desmume
+	// TODO: validate nitrofs
+	if (!nitroInit) {
+		cardRead = true; nitroInit = true;
 	}
 
 
@@ -135,10 +146,61 @@ bool nitroFSInit() {
 }
 
 
+// cannot read across block boundaries (multiples of 0x200 bytes)
+//---------------------------------------------------------------------------------
+static void nitroSubReadBlock(u32 pos, u8 *ptr, u32 len) {
+//---------------------------------------------------------------------------------
+	if ( (len & 3) == 0 && (((u32)ptr) & 3) == 0 && (pos & 3) == 0) {
+		// if everything is word-aligned, read directly
+		cardParamCommand(0xB7, pos, CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F) | CARD_CLK_SLOW | CARD_WR | CARD_nRESET | CARD_SEC_CMD | CARD_SEC_DAT | CARD_ACTIVATE | CARD_BLK_SIZE(1), (u32*)ptr, len >> 2);
+ 	} else {
+		// otherwise, use a temporary buffer
+		static u32 temp[128];
+		cardParamCommand(0xB7, (pos & ~0x1ff), CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F) | CARD_CLK_SLOW | CARD_WR | CARD_nRESET | CARD_SEC_CMD | CARD_SEC_DAT | CARD_ACTIVATE | CARD_BLK_SIZE(1), temp, 0x200 >> 2);
+		memcpy(ptr, ((u8*)temp) + (pos & 0x1FF), len);
+	}
+}
+
+//---------------------------------------------------------------------------------
+static int nitroSubReadCard(unsigned int *npos, void *ptr, int len) {
+//---------------------------------------------------------------------------------
+	u8 *ptr_u8 = (u8*)ptr;
+	int remaining = len;
+
+	if((*npos) & 0x1FF) {
+
+		u32 amt = 0x200 - (*npos & 0x1FF);
+
+		if(amt > remaining) amt = remaining;
+
+		nitroSubReadBlock(*npos, ptr_u8, amt);
+		remaining -= amt;
+		ptr_u8 += amt;
+		*npos += amt;
+	}
+
+	while(len >= 0x200)	{
+		nitroSubReadBlock(*npos, ptr_u8, 0x200);
+		remaining -= 0x200;
+		ptr_u8 += 0x200;
+		*npos += 0x200;
+	}
+
+	if(remaining > 0) {
+		nitroSubReadBlock(*npos, ptr_u8, remaining);
+		*npos += remaining;
+	}
+	return len;
+}
+
 //---------------------------------------------------------------------------------
 static inline int nitroSubRead(unsigned int *npos, void *ptr, int len) {
 //---------------------------------------------------------------------------------
-	if(ndsFileFD!=-1) { //read from ndsfile
+	if(cardRead) {
+		unsigned int tmpPos = *npos;
+		len = nitroSubReadCard(&tmpPos, ptr, len);
+		
+	} else if(ndsFileFD!=-1) { //read from ndsfile
 
 		if(ndsFileLastpos!=*npos)
 			lseek(ndsFileFD, *npos, SEEK_SET);
