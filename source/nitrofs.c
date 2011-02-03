@@ -111,7 +111,7 @@ bool nitroFSInit() {
 
 	// test for argv & open nds file
 	if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
-		if ( strncmp(__system_argv->argv[0],"fat",3) == 0) {
+		if ( strncmp(__system_argv->argv[0],"fat",3) == 0 || strncmp(__system_argv->argv[0],"sd",2)) {
 			if (fatInitDefault() && !nitroInit) {
 				ndsFileFD = open(__system_argv->argv[0], O_RDONLY);
 				if (ndsFileFD != -1) {
@@ -179,7 +179,7 @@ static int nitroSubReadCard(unsigned int *npos, void *ptr, int len) {
 		*npos += amt;
 	}
 
-	while(len >= 0x200)	{
+	while(remaining >= 0x200)	{
 		nitroSubReadBlock(*npos, ptr_u8, 0x200);
 		remaining -= 0x200;
 		ptr_u8 += 0x200;
