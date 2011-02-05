@@ -111,7 +111,7 @@ bool nitroFSInit() {
 
 	// test for argv & open nds file
 	if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
-		if ( strncmp(__system_argv->argv[0],"fat",3) == 0 || strncmp(__system_argv->argv[0],"sd",2)) {
+		if ( strncmp(__system_argv->argv[0],"fat",3) == 0 || strncmp(__system_argv->argv[0],"sd",2) == 0) {
 			if (fatInitDefault() && !nitroInit) {
 				ndsFileFD = open(__system_argv->argv[0], O_RDONLY);
 				if (ndsFileFD != -1) {
