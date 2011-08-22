@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-bool nitroFSInit();
+bool nitroFSInit(char **basepath);
 
 #ifdef __cplusplus
 }

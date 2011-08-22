@@ -9,6 +9,7 @@
 #include <sys/fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 static DIR_ITER* nitroFSDirOpen(struct _reent *r, DIR_ITER *dirState, const char *path);
 static int nitroDirReset(struct _reent *r, DIR_ITER *dirState);
@@ -99,7 +100,7 @@ devoptab_t nitroFSdevoptab={
 };
 
 //---------------------------------------------------------------------------------
-bool nitroFSInit() {
+bool nitroFSInit(char **basepath) {
 //---------------------------------------------------------------------------------
 
 	bool nitroInit = false;
@@ -112,10 +113,14 @@ bool nitroFSInit() {
 	// test for argv & open nds file
 	if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
 		if ( strncmp(__system_argv->argv[0],"fat",3) == 0 || strncmp(__system_argv->argv[0],"sd",2) == 0) {
-			if (fatInitDefault() && !nitroInit) {
+			if (fatInitDefault()) {
 				ndsFileFD = open(__system_argv->argv[0], O_RDONLY);
 				if (ndsFileFD != -1) {
-					nitroInit = true;				
+					nitroInit = true;
+					if(basepath != NULL) {
+						*basepath=malloc(PATH_MAX);
+						*basepath=getcwd(*basepath,PATH_MAX);
+					}				
 				}
 			}
 		}
@@ -125,6 +130,7 @@ bool nitroFSInit() {
 	if (!nitroInit) {
 		if (memcmp(&__NDSHeader->filenameOffset, &__gba_cart_header->filenameOffset, 16) == 0 ) {
 			nitroInit = true;
+			if(basepath != NULL) *basepath = strdup("nitro:/");
 		}
 	}
 
@@ -132,6 +138,7 @@ bool nitroFSInit() {
 	// TODO: validate nitrofs
 	if (!nitroInit) {
 		cardRead = true; nitroInit = true;
+		if(basepath != NULL) *basepath = strdup("nitro:/");
 	}
 
 
