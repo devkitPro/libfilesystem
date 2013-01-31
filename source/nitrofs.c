@@ -416,12 +416,12 @@ static int nitroFSOpen(struct _reent *r, void *fileStruct, const char *path,int 
 
 		}
 
+		nitroFSDirClose(&dre,&dirState);
+
 		if(fatStruct->start) {
 			nitroSubSeek(&fatStruct->pos,fatStruct->start,SEEK_SET);	//seek to start of file
 			return(0);	//woot!
 		}
-
-		nitroFSDirClose(&dre,&dirState);
 
 	}
 	return(-1);
