@@ -16,10 +16,10 @@ static int nitroDirReset(struct _reent *r, DIR_ITER *dirState);
 static int nitroFSDirNext(struct _reent *r, DIR_ITER *dirState, char *filename, struct stat *st);
 static int nitroFSDirClose(struct _reent *r, DIR_ITER *dirState);
 static int nitroFSOpen(struct _reent *r, void *fileStruct, const char *path,int flags,int mode);
-static int nitroFSClose(struct _reent *r,int fd);
-static int nitroFSRead(struct _reent *r,int fd,char *ptr,size_t len);
-static off_t nitroFSSeek(struct _reent *r,int fd,off_t pos,int dir);
-static int nitroFSFstat(struct _reent *r,int fd,struct stat *st);
+static int nitroFSClose(struct _reent *r,void *fd);
+static int nitroFSRead(struct _reent *r,void *fd,char *ptr,size_t len);
+static off_t nitroFSSeek(struct _reent *r,void *fd,off_t pos,int dir);
+static int nitroFSFstat(struct _reent *r,void *fd,struct stat *st);
 static int nitroFSstat(struct _reent *r,const char *file,struct stat *st);
 static int nitroFSChdir(struct _reent *r,const char *name);
 
@@ -428,13 +428,13 @@ static int nitroFSOpen(struct _reent *r, void *fileStruct, const char *path,int 
 }
 
 //---------------------------------------------------------------------------------
-static int nitroFSClose(struct _reent *r,int fd) {
+static int nitroFSClose(struct _reent *r,void *fd) {
 //---------------------------------------------------------------------------------
 	return(0);
 }
 
 //---------------------------------------------------------------------------------
-static int nitroFSRead(struct _reent *r,int fd,char *ptr,size_t len) {
+static int nitroFSRead(struct _reent *r,void *fd,char *ptr,size_t len) {
 //---------------------------------------------------------------------------------
 	struct nitroFSStruct *fatStruct=(struct nitroFSStruct *)fd;
 	unsigned int *npos=&fatStruct->pos;
@@ -446,7 +446,7 @@ static int nitroFSRead(struct _reent *r,int fd,char *ptr,size_t len) {
 }
 
 //---------------------------------------------------------------------------------
-static off_t nitroFSSeek(struct _reent *r,int fd,off_t pos,int dir) {
+static off_t nitroFSSeek(struct _reent *r,void *fd,off_t pos,int dir) {
 //---------------------------------------------------------------------------------
 	//need check for eof here...
 	struct nitroFSStruct *fatStruct=(struct nitroFSStruct *)fd;
@@ -462,7 +462,7 @@ static off_t nitroFSSeek(struct _reent *r,int fd,off_t pos,int dir) {
 }
 
 //---------------------------------------------------------------------------------
-static int nitroFSFstat(struct _reent *r,int fd,struct stat *st) {
+static int nitroFSFstat(struct _reent *r,void *fd,struct stat *st) {
 //---------------------------------------------------------------------------------
 	struct nitroFSStruct *fatStruct=(struct nitroFSStruct *)fd;
 	st->st_size=fatStruct->end-fatStruct->start;
