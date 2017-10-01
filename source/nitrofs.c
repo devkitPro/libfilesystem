@@ -106,9 +106,11 @@ bool nitroFSInit(char **basepath) {
 	bool nitroInit = false;
 
 	if (__NDSHeader->fatSize == 0 ) return false;
-	
+
 	sysSetCartOwner(BUS_OWNER_ARM9);
 	sysSetCardOwner(BUS_OWNER_ARM9);
+
+	char *nitropath = NULL;
 
 	// test for argv & open nds file
 	if ( __system_argv->argvMagic == ARGV_MAGIC && __system_argv->argc >= 1 ) {
@@ -117,10 +119,10 @@ bool nitroFSInit(char **basepath) {
 				ndsFileFD = open(__system_argv->argv[0], O_RDONLY);
 				if (ndsFileFD != -1) {
 					nitroInit = true;
-					if(basepath != NULL) {
-						*basepath=malloc(PATH_MAX);
-						*basepath=getcwd(*basepath,PATH_MAX);
-					}				
+					nitropath = malloc(PATH_MAX);
+					if(nitropath != NULL) {
+						nitropath=getcwd(nitropath,PATH_MAX);
+					}
 				}
 			}
 		}
@@ -130,7 +132,7 @@ bool nitroFSInit(char **basepath) {
 	if (!nitroInit) {
 		if (memcmp(&__NDSHeader->filenameOffset, &__gba_cart_header->filenameOffset, 16) == 0 ) {
 			nitroInit = true;
-			if(basepath != NULL) *basepath = strdup("nitro:/");
+			nitropath = strdup("nitro:/");
 		}
 	}
 
@@ -138,7 +140,7 @@ bool nitroFSInit(char **basepath) {
 	// TODO: validate nitrofs
 	if (!nitroInit) {
 		cardRead = true; nitroInit = true;
-		if(basepath != NULL) *basepath = strdup("nitro:/");
+		nitropath = strdup("nitro:/");
 	}
 
 
@@ -146,9 +148,14 @@ bool nitroFSInit(char **basepath) {
 		fntOffset = __NDSHeader->filenameOffset;
 		fatOffset = __NDSHeader->fatOffset;
 		AddDevice(&nitroFSdevoptab);
-		chdir ("nitro:/");
+		chdir(nitropath);
 	}
 
+	if (basepath != NULL) {
+		*basepath = nitropath;
+	} else {
+		free(nitropath);
+	}
 	return nitroInit;
 }
 
