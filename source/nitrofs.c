@@ -287,7 +287,7 @@ static DIR_ITER* nitroFSDirOpen(struct _reent *r, DIR_ITER *dirState, const char
 
 		while(nitroFSDirNext(r,dirState,dirname,&st)==0) {
 
-			if(S_ISDIR(st.st_mode) && !(strcmp(dirname,dirpath))) { //if its a directory and name matches dirpath
+			if(S_ISDIR(st.st_mode) && !(strcasecmp(dirname,dirpath))) { //if its a directory and name matches dirpath
 				dirStruct->cur_dir_id=dirStruct->dir_id;  //move us to the next dir in tree
 				nitroDirReset(r,dirState);		//set dir to current path we just found...
 				pathfound=true;
@@ -415,7 +415,7 @@ static int nitroFSOpen(struct _reent *r, void *fileStruct, const char *path,int 
 
 		while(nitroFSDirNext(&dre,&dirState, dirfilename, &st)==0) {
 
-			if(!(st.st_mode & S_IFDIR) && (strcmp(dirfilename,filename)==0)) {
+			if(!(st.st_mode & S_IFDIR) && (strcasecmp(dirfilename,filename)==0)) {
 				fatStruct->start=dirStruct.romfat.top;
 				fatStruct->end=dirStruct.romfat.bottom;
 				break;
