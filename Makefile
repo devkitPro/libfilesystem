@@ -105,8 +105,10 @@ dist: all
 	@tar --exclude=*CVS* --exclude=.svn -cvjf libfilesystem-$(VERSION).tar.bz2 include lib
 
 install: all
-	@cp -v include/*.h $(DEVKITPRO)/libnds/include
-	@cp -v lib/*.a $(DEVKITPRO)/libnds/lib
+	@mkdir -p $(DESTDIR)$(DEVKITPRO)/libnds/include
+	@mkdir -p $(DESTDIR)$(DEVKITPRO)/libnds/lib
+	@cp -v include/*.h $(DESTDIR)$(DEVKITPRO)/libnds/include
+	@cp -v lib/*.a $(DESTDIR)$(DEVKITPRO)/libnds/lib
 
 lib:
 	@[ -d $@ ] || mkdir -p $@
