@@ -130,26 +130,19 @@ bool nitroFSInit(char **basepath) {
 
 	// test for valid nitrofs on gba cart
 	if (!nitroInit) {
-		if (memcmp(&__NDSHeader->filenameOffset, &__gba_cart_header->filenameOffset, 16) == 0 ) {
-			nitroInit = true;
-			nitropath = strdup("nitro:/");
+		if (memcmp(&__NDSHeader->filenameOffset, &__gba_cart_header->filenameOffset, 16)) {
+			// fallback to direct card reads for desmume
+			// TODO: validate nitrofs
+			cardRead = true;
 		}
-	}
-
-	// fallback to direct card reads for desmume
-	// TODO: validate nitrofs
-	if (!nitroInit) {
-		cardRead = true; nitroInit = true;
+		nitroInit = true;
 		nitropath = strdup("nitro:/");
 	}
 
-
-	if ( nitroInit ) {
-		fntOffset = __NDSHeader->filenameOffset;
-		fatOffset = __NDSHeader->fatOffset;
-		AddDevice(&nitroFSdevoptab);
-		chdir(nitropath);
-	}
+	fntOffset = __NDSHeader->filenameOffset;
+	fatOffset = __NDSHeader->fatOffset;
+	AddDevice(&nitroFSdevoptab);
+	chdir(nitropath);
 
 	if (basepath != NULL) {
 		*basepath = nitropath;
